@@ -6,3 +6,6 @@ in both services you have to change the user
 change line 
 User=user_machine
 with your actual username
+also change the actual folder rute in both services in lines
+ExecStart=/usr/bin/python3 folder_rute/task.py
+WorkingDirectory=folder_rute

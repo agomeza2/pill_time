@@ -3,8 +3,8 @@ Description=Luigi and discord bot
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 ~/pill_time/task.py
-WorkingDirectory=~/pill_time/
+ExecStart=/usr/bin/python3 folder_rute/task.py
+WorkingDirectory=folder_rute
 Restart=always
 User=user_machine 
 Environment="PYTHONUNBUFFERED=1"
