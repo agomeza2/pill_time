@@ -1,0 +1,13 @@
+[Unit]
+Description=Flask server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 ~/pill_time/web.py
+WorkingDirectory=~/pill_time
+Restart=always
+User=user_machine
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
