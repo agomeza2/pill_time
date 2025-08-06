@@ -1,7 +1,6 @@
 import asyncio
 import sqlite3
 import datetime
-import os
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -10,13 +9,12 @@ import discord
 from discord.ext import commands
 from config import DISCORD_TOKEN, DISCORD_USER_ID
 
-# --- Configuración del bot ---
+# --- bot configuration---
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# --- Base de datos ---
 DB_PATH = "data.db"
 
 def init_db():
@@ -32,7 +30,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# --- Guardar en base de datos ---
 def save_db(date, pill_taken=None, blood_pressure=None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -40,7 +37,7 @@ def save_db(date, pill_taken=None, blood_pressure=None):
     conn.commit()
     conn.close()
 
-# --- Funciones de interacción por DM ---
+# --- DMs ---
 async def send_message_pill():
     user = await bot.fetch_user(DISCORD_USER_ID)
     await user.send("Did you take your pills?")
@@ -49,16 +46,16 @@ async def send_message_pill():
         return msg.author.id == DISCORD_USER_ID and isinstance(msg.channel, discord.DMChannel)
     
     try:
-        msg = await bot.wait_for('message', check=check, timeout=5*60*60)
-        guardar_en_db(datetime.date.today().isoformat(), medicamento=1)
-        await user.send("✅ Medicamento registrado.")
+        await bot.wait_for('message', check=check, timeout=5*60*60)
+        save_db(datetime.date.today().isoformat(), pill_taken=1)
+        await user.send("record registered")
     except asyncio.TimeoutError:
-        await user.send("⚠️ No registraste tu medicamento hoy. Te lo recordaré mañana.")
-        guardar_en_db(datetime.date.today().isoformat(), medicamento=0)
+        await user.send("didn't register your if you take your pill, will tell tomorrow")
+        save_db(datetime.date.today().isoformat(), pill_taken=0)
 
 async def send_message_bp():
     user = await bot.fetch_user(DISCORD_USER_ID)
-    await user.send("🩺 Por favor ingresa tu medida de presión arterial como un número (ej. 120.5).")
+    await user.send("what is your blood pressure?")
 
     def check(msg):
         return msg.author.id == DISCORD_USER_ID and isinstance(msg.channel, discord.DMChannel)
@@ -67,32 +64,32 @@ async def send_message_bp():
         while True:
             msg = await bot.wait_for('message', check=check, timeout=5*60*60)
             try:
-                presion = float(msg.content)
-                guardar_en_db(datetime.date.today().isoformat(), presion=presion)
-                await user.send(f"✅ Presión registrada: {presion}")
+                pressure = float(msg.content)
+                save_db(datetime.date.today().isoformat(), blood_pressure=pressure)
+                await user.send(f"Blood Pressure: {pressure}")
                 break
             except ValueError:
-                await user.send("❌ Por favor ingresa un número válido (ej. 120.5)")
+                await user.send("Not a valid number")
     except asyncio.TimeoutError:
-        await user.send("⚠️ No registraste tu presión hoy. Te lo recordaré mañana.")
+        await user.send("didn't register your pressure today. will remember to you tomorrow")
 
 # --- Scheduler ---
 scheduler = AsyncIOScheduler()
 
-# Dos veces al día para medicamento (8:00 AM y 9:00 PM)
-scheduler.add_job(lambda: asyncio.create_task(enviar_recordatorio_med()), CronTrigger(hour=8, minute=0))
-scheduler.add_job(lambda: asyncio.create_task(enviar_recordatorio_med()), CronTrigger(hour=21, minute=0))
+# Pill (8:00 AM y 9:00 PM)
+scheduler.add_job(lambda: asyncio.create_task(send_message_pill()), CronTrigger(hour=8, minute=0))
+scheduler.add_job(lambda: asyncio.create_task(send_message_pill()), CronTrigger(hour=21, minute=0))
 
-# Dos veces al día para presión arterial (8:30 AM y 9:30 PM)
-scheduler.add_job(lambda: asyncio.create_task(enviar_recordatorio_presion()), CronTrigger(hour=8, minute=30))
-scheduler.add_job(lambda: asyncio.create_task(enviar_recordatorio_presion()), CronTrigger(hour=21, minute=30))
+# BP (8:30 AM y 9:30 PM)
+scheduler.add_job(lambda: asyncio.create_task(send_message_bp()), CronTrigger(hour=8, minute=30))
+scheduler.add_job(lambda: asyncio.create_task(send_message_bp()), CronTrigger(hour=21, minute=30))
 
-# --- Evento al iniciar ---
+# --- Init event ---
 @bot.event
 async def on_ready():
     user = await bot.fetch_user(DISCORD_USER_ID)
-    await user.send("✅ Bot iniciado. Te enviaré notificaciones a las horas programadas.")
-    print(f"Bot conectado como {bot.user}")
+    await user.send("Bot started. Will send message at assing hours")
+    print(f"Bot connected as {bot.user}")
     scheduler.start()
 
 # --- Main ---
