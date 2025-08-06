@@ -3,8 +3,8 @@ Description=Flask server
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 folder_rute/web.py
-WorkingDirectory=folder_rute
+ExecStart=/usr/bin/python3 route/web.py
+WorkingDirectory=route
 Restart=always
 User=user_machine
 Environment="PYTHONUNBUFFERED=1"
