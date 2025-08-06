@@ -78,11 +78,12 @@ async def send_message_bp(date_time):
 # --- Scheduler ---
 scheduler = AsyncIOScheduler()
 
-scheduler.add_job(send_message_pill(0), CronTrigger(hour=7, minute=20))
-scheduler.add_job(send_message_pill(1), CronTrigger(hour=21, minute=0))
+scheduler.add_job(lambda: asyncio.run(send_message_pill(0)), CronTrigger(hour=7, minute=20))
+scheduler.add_job(lambda: asyncio.run(send_message_pill(1)), CronTrigger(hour=21, minute=0))
 
-scheduler.add_job(send_message_bp(0), CronTrigger(hour=7, minute=40))
-scheduler.add_job(send_message_bp(1), CronTrigger(hour=21, minute=30))
+scheduler.add_job(lambda: asyncio.run(send_message_bp(0)), CronTrigger(hour=7, minute=40))
+scheduler.add_job(lambda: asyncio.run(send_message_bp(1)), CronTrigger(hour=21, minute=30))
+
 
 
 # --- Init event ---
