@@ -24,21 +24,22 @@ def init_db():
         CREATE TABLE IF NOT EXISTS medi_data (
             date TEXT,
             pill_taken INTEGER,
-            blood_pressure REAL
+            blood_pressure REAL,
+            day_time INTEGER
         )
     ''')
     conn.commit()
     conn.close()
 
-def save_db(date, pill_taken=None, blood_pressure=None):
+def save_db(date,date_time, pill_taken=None, blood_pressure=None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("INSERT INTO medi_data (date,pill_taken,blood_pressure) VALUES (?, ?, ?)", (date, pill_taken, blood_pressure))
+    c.execute("INSERT INTO medi_data (date,pill_taken,blood_pressure,date_time) VALUES (?, ?, ?,?)", (date, pill_taken, blood_pressure,date_time))
     conn.commit()
     conn.close()
 
 # --- DMs ---
-async def send_message_pill():
+async def send_message_pill(date_time):
     user = await bot.fetch_user(DISCORD_USER_ID)
     await user.send("Did you take your pills?")
     
@@ -47,13 +48,13 @@ async def send_message_pill():
     
     try:
         await bot.wait_for('message', check=check, timeout=5*60*60)
-        save_db(datetime.date.today().isoformat(), pill_taken=1)
+        save_db(datetime.date.today().isoformat(), pill_taken=1,date_time=date_time)
         await user.send("record registered")
     except asyncio.TimeoutError:
-        await user.send("didn't register your if you take your pill, will tell tomorrow")
-        save_db(datetime.date.today().isoformat(), pill_taken=0)
+        await user.send("didn't register your if you take your pill, I will remember this")
+        save_db(datetime.date.today().isoformat(), pill_taken=0,date_time=date_time)
 
-async def send_message_bp():
+async def send_message_bp(date_time):
     user = await bot.fetch_user(DISCORD_USER_ID)
     await user.send("what is your blood pressure?")
 
@@ -65,22 +66,23 @@ async def send_message_bp():
             msg = await bot.wait_for('message', check=check, timeout=5*60*60)
             try:
                 pressure = float(msg.content)
-                save_db(datetime.date.today().isoformat(), blood_pressure=pressure)
+                save_db(datetime.date.today().isoformat(),date_time=date_time,blood_pressure=pressure)
                 await user.send(f"Blood Pressure: {pressure}")
                 break
             except ValueError:
                 await user.send("Not a valid number")
     except asyncio.TimeoutError:
-        await user.send("didn't register your pressure today. will remember to you tomorrow")
+        await user.send("didn't register your pressure today. I will remember this")
+        save_db(datetime.date.today().isoformat(),date_time=date_time,blood_pressure=None)
 
 # --- Scheduler ---
 scheduler = AsyncIOScheduler()
 
-scheduler.add_job(send_message_pill, CronTrigger(hour=8, minute=0))
-scheduler.add_job(send_message_pill, CronTrigger(hour=21, minute=0))
+scheduler.add_job(send_message_pill(0), CronTrigger(hour=7, minute=20))
+scheduler.add_job(send_message_pill(1), CronTrigger(hour=21, minute=0))
 
-scheduler.add_job(send_message_bp, CronTrigger(hour=8, minute=30))
-scheduler.add_job(send_message_bp, CronTrigger(hour=21, minute=30))
+scheduler.add_job(send_message_bp(0), CronTrigger(hour=7, minute=40))
+scheduler.add_job(send_message_bp(1), CronTrigger(hour=21, minute=30))
 
 
 # --- Init event ---
