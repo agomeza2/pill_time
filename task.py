@@ -25,7 +25,7 @@ def init_db():
             date TEXT,
             pill_taken INTEGER,
             blood_pressure REAL,
-            day_time INTEGER
+            date_time INTEGER
         )
     ''')
     conn.commit()
@@ -78,11 +78,11 @@ async def send_message_bp(date_time):
 # --- Scheduler ---
 scheduler = AsyncIOScheduler()
 
-scheduler.add_job(lambda: asyncio.run(send_message_pill(0)), CronTrigger(hour=7, minute=20))
-scheduler.add_job(lambda: asyncio.run(send_message_pill(1)), CronTrigger(hour=21, minute=0))
+scheduler.add_job(send_message_pill, CronTrigger(hour=7, minute=55),args=[0])
+scheduler.add_job(send_message_pill, CronTrigger(hour=21, minute=10),args=[1])
 
-scheduler.add_job(lambda: asyncio.run(send_message_bp(0)), CronTrigger(hour=7, minute=40))
-scheduler.add_job(lambda: asyncio.run(send_message_bp(1)), CronTrigger(hour=21, minute=30))
+scheduler.add_job(send_message_bp, CronTrigger(hour=8, minute=10),args=[0])
+scheduler.add_job(send_message_bp, CronTrigger(hour=21, minute=30),args=[1])
 
 
 
